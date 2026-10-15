@@ -7,7 +7,7 @@
   <meta name="description" content="A colorful name picker with custom probabilities, equal-sized slices, CSV import, and a little anticipation. Spin your own Wheel of Names.">
   <title>Wheel of Names — Let the wheel decide</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20261015-panel">
 </head>
 <body>
   <svg class="icon-defs" aria-hidden="true"><defs>
@@ -62,6 +62,6 @@
   <dialog id="winner-dialog" class="winner-dialog"><form method="dialog" class="dialog-close-form"><button class="icon-button" aria-label="Close result"><svg class="icon"><use href="#i-close"/></svg></button></form><span class="winner-star" aria-hidden="true">✳</span><div class="eyebrow">THE WHEEL HAS SPOKEN</div><h2 id="winner-name"></h2><p id="winner-details"></p><button class="button button-primary full-width" id="spin-again">Spin again<svg class="icon"><use href="#i-arrow"/></svg></button><button class="button button-outline full-width" id="remove-winner">Remove this entry</button></dialog>
   <dialog id="settings-dialog"><form method="dialog" class="dialog-close-form"><button class="icon-button" aria-label="Close settings"><svg class="icon"><use href="#i-close"/></svg></button></form><span class="eyebrow">A FEW PERSONAL TOUCHES</span><h2>Wheel settings</h2><label class="field-label" for="title-input">Wheel name</label><input id="title-input" class="text-input" maxlength="60"><label class="field-label" for="duration-input">Spin duration <span id="duration-value">5 seconds</span></label><input id="duration-input" type="range" min="2" max="12" step="1"><label class="settings-switch"><span>Play spin & winner sounds</span><input id="sound-input" type="checkbox" role="switch"></label><p class="dialog-description">Entries, weights, settings, and recent results are stored in this browser. CSV files are processed on your device.</p><button class="button button-primary full-width" id="save-settings">Save settings<svg class="icon"><use href="#i-check"/></svg></button></dialog>
   <div id="toast" class="toast" role="status"></div><canvas id="confetti" aria-hidden="true"></canvas>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=20261015-panel"></script>
 </body>
 </html>

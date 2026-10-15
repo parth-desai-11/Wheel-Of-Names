@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6f2">
+  <meta name="description" content="A colorful name picker with custom probabilities, equal-sized slices, CSV import, and a little anticipation. Spin your own Wheel of Names.">
+  <title>Wheel of Names — Let the wheel decide</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <svg class="icon-defs" aria-hidden="true"><defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 15v5h16v-5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 6h3c5 0 7 12 12 12h3m-4-4 4 4-4 4M3 18h3c2 0 3.5-2 5-5m2-3c1.5-2 3-4 5-4h3m-4-4 4 4-4 4"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5V4Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-4-4L5 15l-1 5Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  </defs></svg>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Wheel of Names home"><img src="./favicon.svg" alt="" width="35" height="35"><span>Wheel of Names<span class="brand-dot">.</span></span></a>
+    <div class="header-right"><span class="local-status"><span></span> Saved on this device</span><button class="button button-quiet" id="settings-button"><svg class="icon"><use href="#i-settings"/></svg><span>Settings</span></button></div>
+  </header>
+  <main>
+    <section class="intro">
+      <div><div class="eyebrow"><span class="tiny-spark">✳</span> MAKE ROOM FOR A LITTLE CHANCE</div><h1>Let the wheel decide<span>.</span></h1><p>Add your names. Set the odds. Enjoy the suspense.</p></div>
+      <button class="button button-outline import-trigger"><svg class="icon"><use href="#i-upload"/></svg>Import CSV</button>
+    </section>
+    <div class="workspace">
+      <section class="wheel-panel" aria-label="Spinning wheel">
+        <div class="wheel-toolbar"><span class="wheel-caption"><span class="live-dot"></span><span id="wheel-title">The lucky pick</span></span><div class="toolbar-actions"><button class="icon-button" id="sound-button" aria-label="Turn sound on" aria-pressed="false" title="Sound off"><svg class="icon"><use href="#i-sound"/></svg><span class="sound-slash"></span></button><button class="icon-button" id="fullscreen-button" aria-label="Enter full screen" title="Full screen"><svg class="icon"><use href="#i-expand"/></svg></button></div></div>
+        <div class="wheel-stage"><div class="wheel-halo"></div><div class="wheel-wrap"><div class="wheel-pointer" aria-hidden="true"></div><canvas id="wheel" width="1200" height="1200" aria-label="Wheel with eight equal-sized slices"></canvas><button class="wheel-hub" id="hub-button" aria-label="Spin the wheel"><span>SPIN</span><svg class="icon"><use href="#i-arrow"/></svg></button></div><div class="empty-wheel" hidden>Add a few names<br><span>and let chance take it from here.</span></div></div>
+        <div class="spin-controls"><button class="button button-primary spin-button" id="spin-button"><span id="spin-label">Spin the wheel</span><svg class="icon"><use href="#i-arrow"/></svg></button><p class="keyboard-tip">or press <kbd>space</kbd> to spin</p></div>
+        <div class="wheel-note"><span class="note-mark">✳</span><span>Equal slices. <strong>Your odds.</strong><span class="note-detail"> Custom probabilities never change the look of your wheel.</span></span></div>
+      </section>
+      <aside class="entries-panel" aria-label="Wheel entries and results">
+        <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>Your wheel</h2></div><button class="icon-button" id="edit-title-button" aria-label="Rename wheel" title="Rename wheel"><svg class="icon"><use href="#i-edit"/></svg></button></div>
+        <div class="tabs" role="tablist" aria-label="Wheel details"><button class="tab active" id="entries-tab" role="tab" aria-selected="true" aria-controls="entries-content">Entries <span id="entry-count">8</span></button><button class="tab" id="results-tab" role="tab" aria-selected="false" aria-controls="results-content" tabindex="-1">Results <span id="result-count">0</span></button></div>
+        <div id="entries-content" role="tabpanel" aria-labelledby="entries-tab">
+          <div class="entries-tools"><span id="weight-mode-label">Custom weights</span><div><button class="text-button" id="equal-button" title="Give every entry the same chance">Reset odds</button><button class="icon-button small" id="shuffle-button" aria-label="Shuffle entries" title="Shuffle entries"><svg class="icon"><use href="#i-shuffle"/></svg></button></div></div>
+          <div class="list-head"><span>NAME</span><span>WEIGHT</span><span>CHANCE</span><span></span></div>
+          <div id="entries-list" class="entries-list"></div>
+          <form id="add-form" class="add-entry"><svg class="icon"><use href="#i-plus"/></svg><input id="new-name" placeholder="Add a name…" aria-label="New entry name" maxlength="120" autocomplete="off"><button type="submit" aria-label="Add name" title="Add name"><svg class="icon"><use href="#i-arrow"/></svg></button></form>
+          <p class="weight-help">Higher weight = higher chance. A weight of 0 stays on the wheel but can’t be picked.</p>
+          <div class="panel-bottom"><button class="button button-outline import-trigger"><svg class="icon"><use href="#i-upload"/></svg>Import</button><button class="button button-outline" id="bulk-button"><svg class="icon"><use href="#i-edit"/></svg>Paste names</button><button class="icon-button" id="export-button" aria-label="Export entries as CSV" title="Export CSV"><svg class="icon"><use href="#i-download"/></svg></button></div>
+        </div>
+        <div id="results-content" role="tabpanel" aria-labelledby="results-tab" hidden><div class="results-top"><span>Your recent picks</span><button class="text-button" id="clear-results">Clear</button></div><div id="results-list"></div></div>
+        <div class="panel-footnote"><svg class="icon"><use href="#i-check"/></svg><span id="save-label">Your wheel is saved automatically</span></div>
+      </aside>
+    </div>
+    <footer class="site-footer"><span>A little suspense makes everything more fun.</span><span>Built for the wonderfully indecisive <span class="footer-spark">✳</span></span></footer>
+  </main>
+  <dialog id="import-dialog"><form method="dialog" class="dialog-close-form"><button class="icon-button" aria-label="Close import"><svg class="icon"><use href="#i-close"/></svg></button></form><span class="eyebrow">BRING YOUR PEOPLE</span><h2 id="import-title">Import your entries</h2><p class="dialog-description">Upload a CSV or paste names below. Add an optional weight to set each name’s chance.</p><label class="drop-zone" id="drop-zone"><svg class="icon"><use href="#i-upload"/></svg><strong>Choose a CSV file</strong><span>or drop it here · CSV, TSV · up to 1 MB</span><input type="file" id="csv-file" accept=".csv,.tsv,text/csv,text/tab-separated-values"></label><label class="field-label" for="import-text">Names or CSV</label><textarea id="import-text" rows="6" placeholder="name,weight&#10;Alex,3&#10;Jordan,1&#10;Sam,2" spellcheck="false"></textarea><p class="import-format">One name per line, or two columns: <code>name,weight</code>. Percentages work too: <code>Alex,60%</code> and <code>Sam,40%</code>.</p><div id="import-preview" class="import-preview" aria-live="polite"></div><fieldset class="import-mode"><legend class="sr-only">Import behavior</legend><label><input type="radio" name="import-mode" value="replace" checked> Replace current entries</label><label><input type="radio" name="import-mode" value="append"> Add to current entries</label></fieldset><p class="form-error" id="import-error" role="alert"></p><button class="button button-primary full-width" id="confirm-import">Import entries<svg class="icon"><use href="#i-arrow"/></svg></button></dialog>
+  <dialog id="winner-dialog" class="winner-dialog"><form method="dialog" class="dialog-close-form"><button class="icon-button" aria-label="Close result"><svg class="icon"><use href="#i-close"/></svg></button></form><span class="winner-star" aria-hidden="true">✳</span><div class="eyebrow">THE WHEEL HAS SPOKEN</div><h2 id="winner-name"></h2><p id="winner-details"></p><button class="button button-primary full-width" id="spin-again">Spin again<svg class="icon"><use href="#i-arrow"/></svg></button><button class="button button-outline full-width" id="remove-winner">Remove this entry</button></dialog>
+  <dialog id="settings-dialog"><form method="dialog" class="dialog-close-form"><button class="icon-button" aria-label="Close settings"><svg class="icon"><use href="#i-close"/></svg></button></form><span class="eyebrow">A FEW PERSONAL TOUCHES</span><h2>Wheel settings</h2><label class="field-label" for="title-input">Wheel name</label><input id="title-input" class="text-input" maxlength="60"><label class="field-label" for="duration-input">Spin duration <span id="duration-value">5 seconds</span></label><input id="duration-input" type="range" min="2" max="12" step="1"><label class="settings-switch"><span>Play spin & winner sounds</span><input id="sound-input" type="checkbox" role="switch"></label><p class="dialog-description">Entries, weights, settings, and recent results are stored in this browser. CSV files are processed on your device.</p><button class="button button-primary full-width" id="save-settings">Save settings<svg class="icon"><use href="#i-check"/></svg></button></dialog>
+  <div id="toast" class="toast" role="status"></div><canvas id="confetti" aria-hidden="true"></canvas>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -1,12 +1,14 @@
-import { TAU, MAX_ENTRIES, normalizedChances, pickWeightedIndex, rotationForWinner, parseCSV, exportCSV } from './core.js';
+import { TAU, MAX_ENTRIES, rotationForWinner, parseCSV, exportCSV } from './core.js';
 import { prepareImage, putImage, getImage, deleteImage } from './images.js';
+import { DEFAULT_VERSION, DEFAULT_ENTRIES, SCHEDULE } from './defaults.js';
+import { chancesForSpin, pickIndexForSpin, scheduledWinner, entriesWithImages } from './sequence.js';
 
 const $ = selector => document.querySelector(selector);
 const colors = ['#65b5e7','#ba82d0','#f6dd68','#78dca6'];
 const key = 'wheel-of-names-v1';
 const uid = () => crypto.randomUUID();
-const sample = () => ['Ava','Liam','Olivia','Noah','Emma','Oliver','Sophia','James'].map(name => ({id:uid(),name,weight:1}));
-let state = {entries:sample(),results:[],title:'The lucky pick',duration:5,sound:false,panelHidden:false,advanced:true};
+const defaultEntries = savedEntries => entriesWithImages(DEFAULT_ENTRIES,savedEntries).map(entry => ({...entry,id:uid()}));
+let state = {entries:defaultEntries(),defaultVersion:DEFAULT_VERSION,spinCount:0,results:[],title:'The lucky pick',duration:5,sound:false,panelHidden:false,advanced:true};
 let spinning = false, rotation = 0, lastWinnerId = null, audio = null, toastTimer, confettiFrame;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const imageURLs = new Map();
@@ -22,6 +24,12 @@ try {
     state.sound = saved.sound === true;
     state.panelHidden = saved.panelHidden === true;
     state.advanced = saved.advanced !== false;
+    if (saved.defaultVersion === DEFAULT_VERSION) {
+      state.spinCount = Number.isSafeInteger(saved.spinCount) && saved.spinCount >= 0 ? saved.spinCount : 0;
+    } else {
+      // Install this roster once while retaining pictures attached to matching names.
+      state.entries = defaultEntries(state.entries);
+    }
   }
 } catch { /* Browser storage is optional. */ }
 
@@ -96,13 +104,17 @@ function drawWheel() {
   $('.wheel-stage').classList.toggle('is-empty',!count);$('.empty-wheel').hidden=!!count;
 }
 function updateChances() {
-  const chances=normalizedChances(state.entries);
-  document.querySelectorAll('.entry-chance').forEach((element,index)=>element.textContent=chanceText(chances[index]));
+  let chances=[],error='';
+  try { chances=chancesForSpin(state.entries,state.spinCount+1); }
+  catch (failure) { error=failure.message; }
+  document.querySelectorAll('.entry-chance').forEach((element,index)=>element.textContent=error?'—':chanceText(chances[index]));
   const canSpin=chances.some(chance=>chance>0)&&!spinning;
   $('#spin-button').disabled=!canSpin;$('#hub-button').disabled=!canSpin;
-  $('#spin-label').textContent=spinning?'Spinning…':!state.entries.length?'Add names to spin':!canSpin?'Set a positive weight':'Spin the wheel';
-  const equal=state.entries.length>0&&state.entries.every(e=>e.weight===state.entries[0].weight);
-  $('#weight-mode-label').textContent=equal?'Equal chances':'Custom weights';
+  $('#spin-label').textContent=spinning?'Spinning…':!state.entries.length?'Add names to spin':error?'Check entries in Customize':!canSpin?'Set a positive weight':'Spin the wheel';
+  const equal=chances.length>0&&chances.every(chance=>chance===chances[0]);
+  $('#weight-mode-label').textContent=scheduledWinner(state.spinCount+1)?'Scheduled spin':equal?'Equal chances':'Custom weights';
+  $('#sequence-error').textContent=error;
+  $('#sequence-error').hidden=!error;
 }
 function renderEntries() {
   const list=$('#entries-list');list.replaceChildren();
@@ -114,7 +126,7 @@ function renderEntries() {
     photo.setAttribute('aria-label',`${entry.imageId?'Change':'Add'} image for ${entry.name}`);photo.title=photo.getAttribute('aria-label');
     photo.addEventListener('click',()=>{if(!spinning)openEntryImage(entry.id);});
     const name=document.createElement('input');name.className='entry-name';name.value=entry.name;name.maxLength=120;name.setAttribute('aria-label',`Name for entry ${index+1}`);
-    name.addEventListener('input',()=>{const value=name.value.trim();name.setCustomValidity(value?'':'Enter a name');if(value){entry.name=value;photo.setAttribute('aria-label',`${entry.imageId?'Change':'Add'} image for ${entry.name}`);photo.title=photo.getAttribute('aria-label');drawWheel();save();}});
+    name.addEventListener('input',()=>{const value=name.value.trim();name.setCustomValidity(value?'':'Enter a name');if(value){entry.name=value;photo.setAttribute('aria-label',`${entry.imageId?'Change':'Add'} image for ${entry.name}`);photo.title=photo.getAttribute('aria-label');drawWheel();updateChances();save();}});
     name.addEventListener('blur',()=>{name.value=entry.name;name.setCustomValidity('');});wrap.append(photo,name);
     const weight=document.createElement('input');weight.type='number';weight.className='entry-weight';weight.min='0';weight.step='any';weight.value=entry.weight;weight.setAttribute('aria-label',`Weight for ${entry.name}`);
     weight.addEventListener('input',()=>{const value=weight.valueAsNumber;if(!Number.isFinite(value)||value<0){weight.setCustomValidity('Enter a finite number of zero or more.');return;}weight.setCustomValidity('');entry.weight=value;updateChances();save();});
@@ -133,7 +145,7 @@ function renderResults() {
   if(!state.results.length){const empty=document.createElement('div');empty.className='results-empty';empty.append(icon('clock'),document.createElement('br'),document.createTextNode('A little suspense awaits.'),document.createElement('br'),document.createTextNode('Your picks will appear here.'));list.append(empty);}
   state.results.forEach((result,index)=>{
     const row=document.createElement('div');row.className='result-row';
-    const number=document.createElement('span');number.className='result-number';number.textContent=state.results.length-index;
+    const number=document.createElement('span');number.className='result-number';number.textContent=Number.isSafeInteger(result.spin)?result.spin:state.results.length-index;
     const info=document.createElement('div');info.className='result-info';const name=document.createElement('strong');name.textContent=result.name;
     const detail=document.createElement('small');detail.textContent=new Date(result.time).toLocaleDateString([],{year:'numeric',month:'short',day:'numeric'});info.append(name,detail);
     const time=document.createElement('time');time.dateTime=new Date(result.time).toISOString();time.textContent=new Date(result.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});time.title=new Date(result.time).toLocaleString();
@@ -157,15 +169,18 @@ function tone(frequency,duration=.025,volume=.025) { if(!state.sound||!audio||au
 
 function spin() {
   if(spinning||document.querySelector('dialog[open]'))return;
-  const chances=normalizedChances(state.entries);if(!chances.some(c=>c>0)){toast('Add a name and give it a positive weight.');return;}
-  initAudio();const index=pickWeightedIndex(state.entries,random()),entry={...state.entries[index]};
+  const spinNumber=state.spinCount+1;
+  let chances,index;
+  try { chances=chancesForSpin(state.entries,spinNumber);index=pickIndexForSpin(state.entries,spinNumber,random()); }
+  catch(error) { toast(error.message);return; }
+  initAudio();const entry={...state.entries[index]};
   lastWinnerId=entry.id;spinning=true;setEditingDisabled(true);updateChances();
   $('.wheel-wrap').classList.add('has-spun');
   const startRotation=rotation,target=rotationForWinner(index,state.entries.length,rotation,random(),6+Math.floor(random()*3));
   const duration=reducedMotion.matches?180:state.duration*1000;const start=performance.now();let tick=-1;
   function frame(now){const progress=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-progress,5);rotation=startRotation+(target-startRotation)*eased;drawWheel();const current=Math.floor(rotation/(TAU/state.entries.length));if(current!==tick){tick=current;tone(510+random()*110);}if(progress<1){requestAnimationFrame(frame);return;}
-    rotation=target%TAU;spinning=false;setEditingDisabled(false);updateChances();drawWheel();
-    state.results.unshift({name:entry.name,chance:chances[index],time:Date.now()});state.results=state.results.slice(0,100);renderResults();save();
+    rotation=target%TAU;state.spinCount=spinNumber;spinning=false;setEditingDisabled(false);updateChances();drawWheel();
+    state.results.unshift({name:entry.name,chance:chances[index],time:Date.now(),spin:spinNumber});state.results=state.results.slice(0,100);renderResults();save();
     $('#winner-name').textContent=entry.name;
     void showWinnerImage(entry);
     $('#winner-details').textContent=`Picked from ${state.entries.length} ${state.entries.length===1?'entry':'entries'}`;
@@ -184,7 +199,7 @@ $('#spin-again').addEventListener('click',()=>{$('#winner-dialog').close();spin(
 $('#remove-winner').addEventListener('click',()=>{$('#winner-dialog').close();removeEntry(lastWinnerId);toast('Entry removed. Ready for the next pick.');});
 document.addEventListener('keydown',event=>{const shortcut=event.code==='Enter'&&(event.ctrlKey||event.metaKey);const space=event.code==='Space'&&!['INPUT','TEXTAREA','BUTTON','SELECT','A'].includes(event.target.tagName);if((shortcut||space)&&!event.repeat&&!document.querySelector('dialog[open]')){event.preventDefault();spin();}});
 $('#add-form').addEventListener('submit',event=>{event.preventDefault();if(spinning)return;const name=$('#new-name').value.trim();if(!name){$('#new-name').focus();return;}if(state.entries.length>=MAX_ENTRIES){toast(`Your wheel can hold up to ${MAX_ENTRIES.toLocaleString()} entries.`);return;}state.entries.push({id:uid(),name,weight:1});$('#new-name').value='';renderEntries();drawWheel();save();$('#entries-list').scrollTop=$('#entries-list').scrollHeight;$('#new-name').focus();});
-$('#equal-button').addEventListener('click',()=>{if(spinning)return;state.entries.forEach(e=>e.weight=1);renderEntries();save();toast('Every name now has the same chance.');});
+$('#equal-button').addEventListener('click',()=>{if(spinning)return;state.entries.forEach(e=>e.weight=1);renderEntries();save();toast('All entry weights reset to 1.');});
 $('#shuffle-button').addEventListener('click',()=>{if(spinning)return;for(let i=state.entries.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[state.entries[i],state.entries[j]]=[state.entries[j],state.entries[i]];}renderEntries();drawWheel();save();toast('Names shuffled. Your odds stay the same.');});
 
 $('#sort-button').addEventListener('click',()=>{if(spinning)return;state.entries.sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true}));renderEntries();drawWheel();save();toast('Names sorted alphabetically.');});
@@ -263,8 +278,22 @@ $('#confirm-import').addEventListener('click',()=>{try{const imported=parseCSV($
 
 function updateSoundButton(){$('#sound-button').setAttribute('aria-pressed',state.sound);$('#sound-button').setAttribute('aria-label',`Turn sound ${state.sound?'off':'on'}`);$('#sound-button').title=`Sound ${state.sound?'on':'off'}`;}
 $('#sound-button').addEventListener('click',()=>{state.sound=!state.sound;updateSoundButton();save();initAudio();if(state.sound)tone(600,.1);});
-function openSettings(){$('#title-input').value=state.title;$('#duration-input').value=state.duration;$('#duration-value').textContent=`${state.duration} seconds`;$('#sound-input').checked=state.sound;$('#settings-dialog').showModal();}
+function updateSequenceSettings(){
+  $('#spin-count').textContent=state.spinCount;
+  $('#next-spin').textContent=state.spinCount+1;
+  const list=$('#scheduled-picks');list.replaceChildren();
+  for(const slot of SCHEDULE){const row=document.createElement('li');const label=document.createElement('span');label.textContent=`Spin ${slot.spin}`;const name=document.createElement('strong');name.textContent=slot.name;const status=document.createElement('small');status.textContent=state.spinCount>=slot.spin?'Completed':'Upcoming';row.append(label,name,status);list.append(row);}
+}
+function openSettings(){$('#title-input').value=state.title;$('#duration-input').value=state.duration;$('#duration-value').textContent=`${state.duration} seconds`;$('#sound-input').checked=state.sound;updateSequenceSettings();$('#settings-dialog').showModal();}
 $('#settings-button').addEventListener('click',openSettings);$('#edit-title-button').addEventListener('click',()=>{openSettings();$('#title-input').focus();$('#title-input').select();});
+$('#reset-spins').addEventListener('click',()=>{if(spinning)return;state.spinCount=0;updateSequenceSettings();updateChances();save();toast('Spin counter reset. The next spin is 1.');});
+$('#restore-defaults').addEventListener('click',()=>{
+  if(spinning)return;
+  const previous=state.entries;state.entries=defaultEntries(previous);state.spinCount=0;rotation=0;
+  render();updateSequenceSettings();
+  if(save()){const retained=new Set(state.entries.map(entry=>entry.imageId).filter(Boolean));previous.forEach(entry=>{if(entry.imageId&&!retained.has(entry.imageId))void discardImage(entry.imageId);});}
+  toast('Default 91 names restored. The next spin is 1.');
+});
 $('#duration-input').addEventListener('input',()=>$('#duration-value').textContent=`${$('#duration-input').value} seconds`);
 $('#save-settings').addEventListener('click',()=>{state.title=$('#title-input').value.trim()||'The lucky pick';state.duration=Number($('#duration-input').value);state.sound=$('#sound-input').checked;$('#wheel-title').textContent=state.title;updateSoundButton();save();$('#settings-dialog').close();toast('Settings saved.');});
 $('#fullscreen-button').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.body.requestFullscreen)await document.body.requestFullscreen();else toast('Use your browser’s full-screen option to expand the wheel.');}catch{toast('Use your browser’s full-screen option to expand the wheel.');}});

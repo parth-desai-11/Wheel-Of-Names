@@ -23,6 +23,7 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-4-4L5 15l-1 5Z"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
   </defs></svg>
   <header class="site-header">
     <a class="brand" href="./" aria-label="Wheel of Names home"><img src="./favicon.svg" alt="" width="35" height="35"><span>Wheel of Names<span class="brand-dot">.</span></span></a>
@@ -35,12 +36,12 @@
     </section>
     <div class="workspace">
       <section class="wheel-panel" aria-label="Spinning wheel">
-        <div class="wheel-toolbar"><span class="wheel-caption"><span class="live-dot"></span><span id="wheel-title">The lucky pick</span></span><div class="toolbar-actions"><button class="icon-button" id="sound-button" aria-label="Turn sound on" aria-pressed="false" title="Sound off"><svg class="icon"><use href="#i-sound"/></svg><span class="sound-slash"></span></button><button class="icon-button" id="fullscreen-button" aria-label="Enter full screen" title="Full screen"><svg class="icon"><use href="#i-expand"/></svg></button></div></div>
+        <div class="wheel-toolbar"><span class="wheel-caption"><span class="live-dot"></span><span id="wheel-title">The lucky pick</span></span><div class="toolbar-actions"><button class="button button-quiet panel-toggle" id="panel-toggle" aria-expanded="true" aria-controls="entries-panel"><svg class="icon"><use href="#i-panel"/></svg><span id="panel-toggle-label">Hide panel</span></button><button class="icon-button" id="sound-button" aria-label="Turn sound on" aria-pressed="false" title="Sound off"><svg class="icon"><use href="#i-sound"/></svg><span class="sound-slash"></span></button><button class="icon-button" id="fullscreen-button" aria-label="Enter full screen" title="Full screen"><svg class="icon"><use href="#i-expand"/></svg></button></div></div>
         <div class="wheel-stage"><div class="wheel-halo"></div><div class="wheel-wrap"><div class="wheel-pointer" aria-hidden="true"></div><canvas id="wheel" width="1200" height="1200" aria-label="Wheel with eight equal-sized slices"></canvas><button class="wheel-hub" id="hub-button" aria-label="Spin the wheel"><span>SPIN</span><svg class="icon"><use href="#i-arrow"/></svg></button></div><div class="empty-wheel" hidden>Add a few names<br><span>and let chance take it from here.</span></div></div>
         <div class="spin-controls"><button class="button button-primary spin-button" id="spin-button"><span id="spin-label">Spin the wheel</span><svg class="icon"><use href="#i-arrow"/></svg></button><p class="keyboard-tip">or press <kbd>space</kbd> to spin</p></div>
         <div class="wheel-note"><span class="note-mark">✳</span><span>Equal slices. <strong>Your odds.</strong><span class="note-detail"> Custom probabilities never change the look of your wheel.</span></span></div>
       </section>
-      <aside class="entries-panel" aria-label="Wheel entries and results">
+      <aside class="entries-panel" id="entries-panel" aria-label="Wheel entries and results">
         <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>Your wheel</h2></div><button class="icon-button" id="edit-title-button" aria-label="Rename wheel" title="Rename wheel"><svg class="icon"><use href="#i-edit"/></svg></button></div>
         <div class="tabs" role="tablist" aria-label="Wheel details"><button class="tab active" id="entries-tab" role="tab" aria-selected="true" aria-controls="entries-content">Entries <span id="entry-count">8</span></button><button class="tab" id="results-tab" role="tab" aria-selected="false" aria-controls="results-content" tabindex="-1">Results <span id="result-count">0</span></button></div>
         <div id="entries-content" role="tabpanel" aria-labelledby="entries-tab">

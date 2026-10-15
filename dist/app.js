@@ -5,7 +5,7 @@ const colors = ['#e5a27e','#e5c563','#9cbca8','#294e3e','#afbdcf','#d99882','#c7
 const key = 'wheel-of-names-v1';
 const uid = () => crypto.randomUUID();
 const sample = () => ['Ava','Liam','Olivia','Noah','Emma','Oliver','Sophia','James'].map(name => ({id:uid(),name,weight:1}));
-let state = {entries:sample(),results:[],title:'The lucky pick',duration:5,sound:false};
+let state = {entries:sample(),results:[],title:'The lucky pick',duration:5,sound:false,panelHidden:false};
 let spinning = false, rotation = 0, lastWinnerId = null, audio = null, toastTimer, confettiFrame;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -17,6 +17,7 @@ try {
     state.title = typeof saved.title === 'string' && saved.title.trim() ? saved.title.slice(0,60) : state.title;
     state.duration = Number.isFinite(saved.duration) ? Math.max(2,Math.min(12,saved.duration)) : 5;
     state.sound = saved.sound === true;
+    state.panelHidden = saved.panelHidden === true;
   }
 } catch { /* Browser storage is optional. */ }
 
@@ -98,7 +99,15 @@ function renderResults() {
     row.append(number,info,time);list.append(row);
   });
 }
-function render() { renderEntries();renderResults();drawWheel();$('#wheel-title').textContent=state.title;updateSoundButton(); }
+function updatePanelVisibility() {
+  $('#entries-panel').hidden = state.panelHidden;
+  $('.workspace').classList.toggle('panel-hidden',state.panelHidden);
+  $('#panel-toggle').setAttribute('aria-expanded',String(!state.panelHidden));
+  $('#panel-toggle-label').textContent = state.panelHidden ? 'Show panel' : 'Hide panel';
+  // Keep the winner announcement free of probabilities while the panel is hidden.
+  $('#winner-probability')?.toggleAttribute('hidden',state.panelHidden);
+}
+function render() { renderEntries();renderResults();drawWheel();$('#wheel-title').textContent=state.title;updateSoundButton();updatePanelVisibility(); }
 function setEditingDisabled(disabled) { document.querySelectorAll('#entries-content input,#entries-content button,.import-trigger,#bulk-button,#edit-title-button,#settings-button').forEach(e=>e.disabled=disabled); }
 function initAudio() { if(!state.sound)return;try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume().catch(()=>{});}catch{} }
 function tone(frequency,duration=.025,volume=.025) { if(!state.sound||!audio||audio.state!=='running')return;const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.connect(gain);gain.connect(audio.destination);oscillator.frequency.value=frequency;gain.gain.setValueAtTime(volume,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);oscillator.start();oscillator.stop(audio.currentTime+duration); }
@@ -113,7 +122,9 @@ function spin() {
   function frame(now){const progress=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-progress,5);rotation=startRotation+(target-startRotation)*eased;drawWheel();const current=Math.floor(rotation/(TAU/state.entries.length));if(current!==tick){tick=current;tone(510+random()*110);}if(progress<1){requestAnimationFrame(frame);return;}
     rotation=target%TAU;spinning=false;setEditingDisabled(false);updateChances();drawWheel();
     state.results.unshift({name:entry.name,chance:chances[index],time:Date.now()});state.results=state.results.slice(0,100);renderResults();save();
-    $('#winner-name').textContent=entry.name;$('#winner-details').textContent=`Picked from ${state.entries.length} ${state.entries.length===1?'entry':'entries'} · ${chanceText(chances[index])} chance`;
+    $('#winner-name').textContent=entry.name;
+    $('#winner-details').textContent=`Picked from ${state.entries.length} ${state.entries.length===1?'entry':'entries'}`;
+    const probability=document.createElement('span');probability.id='winner-probability';probability.textContent=` · ${chanceText(chances[index])} chance`;probability.hidden=state.panelHidden;$('#winner-details').append(probability);
     $('#remove-winner').disabled=false;$('#winner-dialog').showModal();
     tone(660,.18,.04);setTimeout(()=>tone(880,.25,.035),120);celebrate();
   }requestAnimationFrame(frame);
@@ -122,6 +133,7 @@ function spin() {
 function celebrate(){cancelAnimationFrame(confettiFrame);const canvas=$('#confetti'),ctx=canvas.getContext('2d');canvas.width=innerWidth;canvas.height=innerHeight;if(reducedMotion.matches)return;const start=performance.now(),pieces=Array.from({length:85},()=>({x:canvas.width*.5,y:canvas.height*.42,vx:(random()-.5)*14,vy:-random()*12-3,color:colors[Math.floor(random()*colors.length)],angle:random()*TAU,size:4+random()*5}));function frame(now){ctx.clearRect(0,0,canvas.width,canvas.height);const elapsed=now-start;for(const p of pieces){p.x+=p.vx;p.y+=p.vy;p.vy+=.16;p.angle+=.08;ctx.save();ctx.globalAlpha=Math.max(0,1-elapsed/3000);ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle=p.color;ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*.55);ctx.restore();}if(elapsed<3000)confettiFrame=requestAnimationFrame(frame);else ctx.clearRect(0,0,canvas.width,canvas.height);}confettiFrame=requestAnimationFrame(frame);}
 
 $('#spin-button').addEventListener('click',spin);$('#hub-button').addEventListener('click',spin);
+$('#panel-toggle').addEventListener('click',()=>{state.panelHidden=!state.panelHidden;updatePanelVisibility();save();});
 $('#spin-again').addEventListener('click',()=>{$('#winner-dialog').close();spin();});
 $('#remove-winner').addEventListener('click',()=>{state.entries=state.entries.filter(e=>e.id!==lastWinnerId);$('#winner-dialog').close();render();save();toast('Entry removed. Ready for the next pick.');});
 document.addEventListener('keydown',event=>{if(event.code==='Space'&&!event.repeat&&!['INPUT','TEXTAREA','BUTTON','SELECT','A'].includes(event.target.tagName)&&!document.querySelector('dialog[open]')){event.preventDefault();spin();}});

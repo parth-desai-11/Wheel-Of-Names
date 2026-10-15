@@ -7,3 +7,12 @@
 @media(max-width:500px){.site-header{padding:0 20px;height:74px}.brand{font-size:17px;gap:9px}.brand img{width:28px;height:28px}.header-right{gap:0}.header-right .button{padding:8px}.header-right .button>span{display:none}main{padding:0 16px}.intro{padding:28px 3px 24px;align-items:start}.intro>.button{display:none}h1{font-size:32px;letter-spacing:-1.4px}.intro p{font-size:12px}.wheel-toolbar{padding:15px 17px 0}.wheel-stage{padding:33px 32px 10px;min-height:0}.wheel-pointer{height:32px;width:23px;top:-18px}.wheel-wrap{box-shadow:0 12px 25px -13px #3b49234d,0 0 0 7px #fffef9,0 0 0 8px #dfdfd3}.wheel-hub{height:70px;width:70px;border-width:5px}.wheel-hub span{font-size:10px}.wheel-hub .icon{height:16px;width:16px}.wheel-halo{width:94%}.wheel-note{margin:0 18px;padding:15px 0;font-size:10px}.note-detail{display:none}.spin-controls{padding:22px 0 20px}.spin-button{height:47px;min-width:215px}.workspace{gap:18px}.site-footer{font-size:9px;display:block;text-align:center;line-height:1.7}.site-footer>span:last-child{justify-content:center;margin-top:5px}.entries-panel{padding:22px 18px 0}.list-head,.entry-row{grid-template-columns:minmax(0,1fr) 53px 47px 20px;gap:8px}.entry-name{font-size:13px}.weight-help{font-size:10px}.entries-tools{font-size:11px}dialog{padding:30px 22px}.import-mode{font-size:10px;gap:9px}.empty-wheel{font-size:20px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 body:fullscreen{overflow:auto;background:var(--bg)}
+.panel-toggle{min-height:35px;padding:7px 9px;font-size:11px;color:#6f796b;white-space:nowrap;gap:6px}
+.panel-toggle .icon{width:16px;height:16px}
+.toolbar-actions{align-items:center;flex-shrink:0}
+.wheel-caption{min-width:0;margin-right:12px}
+#wheel-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace.panel-hidden{grid-template-columns:minmax(0,1fr)}
+.panel-hidden .wheel-stage{flex:none;padding-top:32px}
+.panel-hidden .wheel-wrap{max-width:490px}
+@media(max-width:500px){.wheel-toolbar{flex-wrap:wrap;gap:7px}.panel-toggle{font-size:10px;padding:7px}.panel-hidden .wheel-wrap{max-width:440px}}

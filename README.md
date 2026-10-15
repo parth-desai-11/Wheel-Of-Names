@@ -1,13 +1,13 @@
 # Wheel of Names
 
-A browser-based name picker with custom probabilities and equal-sized visual slices. Inspired by the familiar wheel-and-entries interaction at [wheelofnames.com](https://wheelofnames.com/), with an original design and implementation.
+A browser-based name picker with custom probabilities and equal-sized visual slices. The compact dark toolbar, large colorful wheel, right-side pointer, and Entries/Results editor follow the layout at [wheelofnames.com](https://wheelofnames.com/), with an independent implementation.
 
 ## Use
 
 - Edit names and weights in the entries panel. The **Chance** column shows the normalized probability: an entry's weight divided by the sum of all weights. Weights of 60 and 40 produce chances of 60% and 40%; weights of 3 and 1 produce 75% and 25%. Weights do not need to total 100.
 - A weight of zero keeps an entry visible but excludes it from selection. Every entry always gets the same angular slice, regardless of weight. At least one entry needs a positive weight to spin.
-- Click the wheel, use **Spin the wheel**, or press Space. After the draw, keep or remove the selected entry.
-- Click **Hide panel** above the wheel to hide the entries, weights, and results while you present or spin. The wheel expands to fill the space, and winner announcements omit the probability. Click **Show panel** to edit again. Your visibility preference is saved in this browser; hiding the panel keeps all weights in effect.
+- Click the wheel, use **Spin the wheel**, or press Ctrl+Enter, Command+Enter, or Space. After the draw, keep or remove the selected entry. Winner announcements and results history never display selection probabilities; those are shown only in the entries editor.
+- Click **Hide panel** above the wheel to hide the entries, weights, and results while you present or spin. Click **Show panel** to edit again. Toggle **Advanced** to show or hide the weight and chance columns while keeping the names and image buttons visible. Both visibility preferences are saved in this browser and keep all weights in effect. Use **Shuffle** to randomize entry order or **Sort** to alphabetize it.
 - Click the image icon beside any name to upload, replace, or remove its winner picture. The picture appears in the winner popup, including when the entries panel is hidden. Pictures stay attached when entries are renamed or shuffled and survive a refresh. Uploads up to 10 MB are resized to at most 800 pixels on the longest edge and saved as a static image in this browser's IndexedDB. They do not upload to a server or appear in CSV exports. Replacing the entire entries list removes its previous pictures.
 - Import a CSV/TSV file or paste names. Headers are optional; accepted column headers include `name`, `entry`, `weight`, `probability`, and `chance`. Quoted values, escaped quotes, multiline fields, UTF-8 BOMs, tabs, semicolons, and percentage values are supported. Limits: 1 MB per uploaded file, 1,000 entries, and 120 characters per name.
 - Export entries and weights as CSV. Recent results (up to 100), entries, and settings save automatically in this browser. They do not synchronize between devices.
@@ -44,6 +44,6 @@ https://parth-desai-11.github.io/Wheel-Of-Names/
 
 The browser's `crypto.getRandomValues()` supplies a random value in [0, 1). Cumulative normalized weights determine the selected entry. The animation then makes several full turns and stops inside that entry's equal-sized slice. The visual wheel is an animation of the weighted result, not a physical uniform-angle draw. A second random value varies the stopping position safely inside the slice.
 
-CSV files are parsed locally. Names are rendered with text nodes or canvas, never interpreted as HTML. Google Fonts is the only external asset request; system sans-serif fallbacks work if fonts are unavailable.
+CSV files are parsed locally. Names are rendered with text nodes or canvas, never interpreted as HTML. Fonts and application assets are served locally without external font requests.
 
 Tests cover probability boundaries, zero and very large weights, a 100,000-draw deterministic distribution, landing geometry for up to 1,000 slices, malformed CSVs, and import/export round trips.

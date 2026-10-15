@@ -2,11 +2,11 @@ import { TAU, MAX_ENTRIES, normalizedChances, pickWeightedIndex, rotationForWinn
 import { prepareImage, putImage, getImage, deleteImage } from './images.js';
 
 const $ = selector => document.querySelector(selector);
-const colors = ['#e5a27e','#e5c563','#9cbca8','#294e3e','#afbdcf','#d99882','#c7cba0','#7f9983'];
+const colors = ['#65b5e7','#ba82d0','#f6dd68','#78dca6'];
 const key = 'wheel-of-names-v1';
 const uid = () => crypto.randomUUID();
 const sample = () => ['Ava','Liam','Olivia','Noah','Emma','Oliver','Sophia','James'].map(name => ({id:uid(),name,weight:1}));
-let state = {entries:sample(),results:[],title:'The lucky pick',duration:5,sound:false,panelHidden:false};
+let state = {entries:sample(),results:[],title:'The lucky pick',duration:5,sound:false,panelHidden:false,advanced:true};
 let spinning = false, rotation = 0, lastWinnerId = null, audio = null, toastTimer, confettiFrame;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const imageURLs = new Map();
@@ -21,12 +21,13 @@ try {
     state.duration = Number.isFinite(saved.duration) ? Math.max(2,Math.min(12,saved.duration)) : 5;
     state.sound = saved.sound === true;
     state.panelHidden = saved.panelHidden === true;
+    state.advanced = saved.advanced !== false;
   }
 } catch { /* Browser storage is optional. */ }
 
 function save() {
   try { localStorage.setItem(key, JSON.stringify(state)); return true; }
-  catch { $('#save-label').textContent = 'Storage unavailable · export CSV to keep entries'; $('.local-status').textContent = 'Browser storage unavailable'; return false; }
+  catch { $('#save-label').textContent = 'Storage unavailable · export CSV to keep entries'; return false; }
 }
 function toast(message) { $('#toast').textContent = message; $('#toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 3200); }
 function chanceText(chance) { return chance > 0 && chance < 0.001 ? '<0.1%' : `${(chance * 100).toFixed(1).replace(/\.0$/,'')}%`; }
@@ -55,10 +56,10 @@ async function loadThumbnail(button, entry) {
 }
 async function showWinnerImage(entry) {
   const request = ++winnerImageRequest, image = $('#winner-image');
-  image.hidden=true;image.removeAttribute('src');$('.winner-star').hidden=false;
+  image.hidden=true;image.removeAttribute('src');
   const url = await imageURL(entry.imageId);
   if (!url || request !== winnerImageRequest) return;
-  image.src=url;image.alt=`Image for ${entry.name}`;image.hidden=false;$('.winner-star').hidden=true;
+  image.src=url;image.alt=`Image for ${entry.name}`;image.hidden=false;
 }
 function removeEntry(id) {
   const entry = state.entries.find(e => e.id === id);
@@ -72,20 +73,20 @@ function drawWheel() {
   ctx.clearRect(0,0,size,size);
   ctx.save(); ctx.translate(center,center); ctx.rotate(rotation);
   const entries = state.entries, count = entries.length;
-  if (!count) { ctx.fillStyle = '#e5e9dc';ctx.beginPath();ctx.arc(0,0,radius,0,TAU);ctx.fill(); }
+  if (!count) { ctx.fillStyle = '#30343c';ctx.beginPath();ctx.arc(0,0,radius,0,TAU);ctx.fill(); }
   const slice = TAU / count;
   entries.forEach((entry,index) => {
-    const start = -Math.PI/2 + index * slice;
+    // The slices and pointer both start at the right edge (3 o'clock).
+    const start = index * slice;
     ctx.beginPath(); ctx.moveTo(0,0);ctx.arc(0,0,radius,start,start+slice);ctx.closePath();ctx.fillStyle=colors[index%colors.length];ctx.fill();
-    ctx.strokeStyle='#fff9e838';ctx.lineWidth=count>80?0.6:2;ctx.stroke();
+    ctx.strokeStyle='#ffffff12';ctx.lineWidth=count>80?0.6:1;ctx.stroke();
     if(count>120) return;
     const middle=start+slice/2;
-    ctx.save();ctx.rotate(middle);ctx.translate(radius * 0.69,0);
-    if(Math.cos(middle)<0)ctx.rotate(Math.PI);
-    const fontSize=Math.min(40,Math.max(9,620/count));
-    ctx.font=`600 ${fontSize}px "DM Sans", sans-serif`;
-    ctx.fillStyle=index%colors.length===3?'#fffdf3':'#2a4636';ctx.textAlign='center';ctx.textBaseline='middle';
-    let text=entry.name;const maxWidth=radius*0.39;
+    ctx.save();ctx.rotate(middle);ctx.translate(radius * 0.66,0);
+    const fontSize=Math.min(70,Math.max(10,640/count));
+    ctx.font=`400 ${fontSize}px Arial, sans-serif`;
+    ctx.fillStyle='#111111';ctx.textAlign='center';ctx.textBaseline='middle';
+    let text=entry.name;const maxWidth=radius*0.55;
     while(ctx.measureText(text).width>maxWidth&&text.length>1)text=text.slice(0,-1);
     if(text!==entry.name)text=text.slice(0,-1)+'…';
     ctx.fillText(text,0,0);ctx.restore();
@@ -134,7 +135,7 @@ function renderResults() {
     const row=document.createElement('div');row.className='result-row';
     const number=document.createElement('span');number.className='result-number';number.textContent=state.results.length-index;
     const info=document.createElement('div');info.className='result-info';const name=document.createElement('strong');name.textContent=result.name;
-    const detail=document.createElement('small');detail.textContent=`${chanceText(result.chance)} chance when picked`;info.append(name,detail);
+    const detail=document.createElement('small');detail.textContent=new Date(result.time).toLocaleDateString([],{year:'numeric',month:'short',day:'numeric'});info.append(name,detail);
     const time=document.createElement('time');time.dateTime=new Date(result.time).toISOString();time.textContent=new Date(result.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});time.title=new Date(result.time).toLocaleString();
     row.append(number,info,time);list.append(row);
   });
@@ -144,10 +145,12 @@ function updatePanelVisibility() {
   $('.workspace').classList.toggle('panel-hidden',state.panelHidden);
   $('#panel-toggle').setAttribute('aria-expanded',String(!state.panelHidden));
   $('#panel-toggle-label').textContent = state.panelHidden ? 'Show panel' : 'Hide panel';
-  // Keep the winner announcement free of probabilities while the panel is hidden.
-  $('#winner-probability')?.toggleAttribute('hidden',state.panelHidden);
 }
-function render() { renderEntries();renderResults();drawWheel();$('#wheel-title').textContent=state.title;updateSoundButton();updatePanelVisibility(); }
+function updateAdvanced() {
+  $('#advanced-input').checked=state.advanced;
+  $('#entries-panel').classList.toggle('simple-editor',!state.advanced);
+}
+function render() { renderEntries();renderResults();drawWheel();$('#wheel-title').textContent=state.title;updateSoundButton();updatePanelVisibility();updateAdvanced(); }
 function setEditingDisabled(disabled) { document.querySelectorAll('#entries-content input,#entries-content button,.import-trigger,#bulk-button,#edit-title-button,#settings-button').forEach(e=>e.disabled=disabled); }
 function initAudio() { if(!state.sound)return;try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume().catch(()=>{});}catch{} }
 function tone(frequency,duration=.025,volume=.025) { if(!state.sound||!audio||audio.state!=='running')return;const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.connect(gain);gain.connect(audio.destination);oscillator.frequency.value=frequency;gain.gain.setValueAtTime(volume,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);oscillator.start();oscillator.stop(audio.currentTime+duration); }
@@ -157,6 +160,7 @@ function spin() {
   const chances=normalizedChances(state.entries);if(!chances.some(c=>c>0)){toast('Add a name and give it a positive weight.');return;}
   initAudio();const index=pickWeightedIndex(state.entries,random()),entry={...state.entries[index]};
   lastWinnerId=entry.id;spinning=true;setEditingDisabled(true);updateChances();
+  $('.wheel-wrap').classList.add('has-spun');
   const startRotation=rotation,target=rotationForWinner(index,state.entries.length,rotation,random(),6+Math.floor(random()*3));
   const duration=reducedMotion.matches?180:state.duration*1000;const start=performance.now();let tick=-1;
   function frame(now){const progress=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-progress,5);rotation=startRotation+(target-startRotation)*eased;drawWheel();const current=Math.floor(rotation/(TAU/state.entries.length));if(current!==tick){tick=current;tone(510+random()*110);}if(progress<1){requestAnimationFrame(frame);return;}
@@ -165,7 +169,6 @@ function spin() {
     $('#winner-name').textContent=entry.name;
     void showWinnerImage(entry);
     $('#winner-details').textContent=`Picked from ${state.entries.length} ${state.entries.length===1?'entry':'entries'}`;
-    const probability=document.createElement('span');probability.id='winner-probability';probability.textContent=` · ${chanceText(chances[index])} chance`;probability.hidden=state.panelHidden;$('#winner-details').append(probability);
     $('#remove-winner').disabled=false;$('#winner-dialog').showModal();
     tone(660,.18,.04);setTimeout(()=>tone(880,.25,.035),120);celebrate();
   }requestAnimationFrame(frame);
@@ -174,18 +177,25 @@ function spin() {
 function celebrate(){cancelAnimationFrame(confettiFrame);const canvas=$('#confetti'),ctx=canvas.getContext('2d');canvas.width=innerWidth;canvas.height=innerHeight;if(reducedMotion.matches)return;const start=performance.now(),pieces=Array.from({length:85},()=>({x:canvas.width*.5,y:canvas.height*.42,vx:(random()-.5)*14,vy:-random()*12-3,color:colors[Math.floor(random()*colors.length)],angle:random()*TAU,size:4+random()*5}));function frame(now){ctx.clearRect(0,0,canvas.width,canvas.height);const elapsed=now-start;for(const p of pieces){p.x+=p.vx;p.y+=p.vy;p.vy+=.16;p.angle+=.08;ctx.save();ctx.globalAlpha=Math.max(0,1-elapsed/3000);ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle=p.color;ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*.55);ctx.restore();}if(elapsed<3000)confettiFrame=requestAnimationFrame(frame);else ctx.clearRect(0,0,canvas.width,canvas.height);}confettiFrame=requestAnimationFrame(frame);}
 
 $('#spin-button').addEventListener('click',spin);$('#hub-button').addEventListener('click',spin);
+$('#wheel').addEventListener('click',spin);
 $('#panel-toggle').addEventListener('click',()=>{state.panelHidden=!state.panelHidden;updatePanelVisibility();save();});
+$('#advanced-input').addEventListener('change',()=>{state.advanced=$('#advanced-input').checked;updateAdvanced();save();});
 $('#spin-again').addEventListener('click',()=>{$('#winner-dialog').close();spin();});
 $('#remove-winner').addEventListener('click',()=>{$('#winner-dialog').close();removeEntry(lastWinnerId);toast('Entry removed. Ready for the next pick.');});
-document.addEventListener('keydown',event=>{if(event.code==='Space'&&!event.repeat&&!['INPUT','TEXTAREA','BUTTON','SELECT','A'].includes(event.target.tagName)&&!document.querySelector('dialog[open]')){event.preventDefault();spin();}});
+document.addEventListener('keydown',event=>{const shortcut=event.code==='Enter'&&(event.ctrlKey||event.metaKey);const space=event.code==='Space'&&!['INPUT','TEXTAREA','BUTTON','SELECT','A'].includes(event.target.tagName);if((shortcut||space)&&!event.repeat&&!document.querySelector('dialog[open]')){event.preventDefault();spin();}});
 $('#add-form').addEventListener('submit',event=>{event.preventDefault();if(spinning)return;const name=$('#new-name').value.trim();if(!name){$('#new-name').focus();return;}if(state.entries.length>=MAX_ENTRIES){toast(`Your wheel can hold up to ${MAX_ENTRIES.toLocaleString()} entries.`);return;}state.entries.push({id:uid(),name,weight:1});$('#new-name').value='';renderEntries();drawWheel();save();$('#entries-list').scrollTop=$('#entries-list').scrollHeight;$('#new-name').focus();});
 $('#equal-button').addEventListener('click',()=>{if(spinning)return;state.entries.forEach(e=>e.weight=1);renderEntries();save();toast('Every name now has the same chance.');});
 $('#shuffle-button').addEventListener('click',()=>{if(spinning)return;for(let i=state.entries.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[state.entries[i],state.entries[j]]=[state.entries[j],state.entries[i]];}renderEntries();drawWheel();save();toast('Names shuffled. Your odds stay the same.');});
+
+$('#sort-button').addEventListener('click',()=>{if(spinning)return;state.entries.sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true}));renderEntries();drawWheel();save();toast('Names sorted alphabetically.');});
 
 function selectTab(selected){for(const name of ['entries','results']){const active=name===selected,tab=$(`#${name}-tab`);tab.classList.toggle('active',active);tab.setAttribute('aria-selected',active);tab.tabIndex=active?0:-1;$(`#${name}-content`).hidden=!active;}}
 for(const name of ['entries','results']){$(`#${name}-tab`).addEventListener('click',()=>selectTab(name));$(`#${name}-tab`).addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const next=event.key==='Home'?'entries':event.key==='End'?'results':name==='entries'?'results':'entries';selectTab(next);$(`#${next}-tab`).focus();}});}
 $('#clear-results').addEventListener('click',()=>{state.results=[];renderResults();save();toast('Results cleared.');});
 $('#export-button').addEventListener('click',()=>{if(!state.entries.length){toast('Add some entries before exporting.');return;}const url=URL.createObjectURL(new Blob([exportCSV(state.entries)],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='wheel-of-names.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Your entries and weights have been exported.');});
+
+$('#header-export-button').addEventListener('click',()=>$('#export-button').click());
+$('#header-fullscreen-button').addEventListener('click',()=>$('#fullscreen-button').click());
 
 async function openEntryImage(id) {
   if(imageUploadPending)return;
